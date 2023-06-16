@@ -41,36 +41,7 @@
 
 // ----------------------------------------------------------------------------
 
-#include "led.h"
 
-#define BLINK_PORT_NUMBER         (3)
-#define BLINK_PIN_NUMBER_GREEN    (12)
-#define BLINK_PIN_NUMBER_ORANGE   (13)
-#define BLINK_PIN_NUMBER_RED      (14)
-#define BLINK_PIN_NUMBER_BLUE     (15)
-#define BLINK_ACTIVE_LOW          (false)
-
-struct led blinkLeds[4];
-
-// ----------------------------------------------------------------------------
-/*-----------------------------------------------------------*/
-
-/*
- * The LED timer callback function.  This does nothing but switch the red LED
- * off.
- */
-
-static void prvOneShotTimerCallback( TimerHandle_t xTimer );
-static void prvAutoReloadTimerCallback( TimerHandle_t xTimer );
-
-/*-----------------------------------------------------------*/
-
-/* The LED software timer.  This uses vLEDTimerCallback() as its callback
- * function.
- */
-static TimerHandle_t xTimer1 = NULL;
-static TimerHandle_t xTimer2 = NULL;
-BaseType_t xTimer1Started, xTimer2Started;
 
 /*-----------------------------------------------------------*/
 // ----------------------------------------------------------------------------
@@ -82,7 +53,7 @@ BaseType_t xTimer1Started, xTimer2Started;
 // but can be rerouted to any device or completely suppressed, by
 // changing the definitions required in system/src/diag/trace-impl.c
 // (currently OS_USE_TRACE_ITM, OS_USE_TRACE_SEMIHOSTING_DEBUG/_STDOUT).
-//
+
 
 // ----- main() ---------------------------------------------------------------
 
@@ -98,28 +69,7 @@ main(int argc, char* argv[])
 {
 	// Add your code here.
 
-	blinkLeds[0] = createLed(BLINK_PORT_NUMBER, BLINK_PIN_NUMBER_GREEN, BLINK_ACTIVE_LOW );
-	blinkLeds[1] = createLed(BLINK_PORT_NUMBER, BLINK_PIN_NUMBER_ORANGE, BLINK_ACTIVE_LOW );
-	blinkLeds[2] = createLed(BLINK_PORT_NUMBER, BLINK_PIN_NUMBER_RED, BLINK_ACTIVE_LOW );
-	blinkLeds[3] = createLed(BLINK_PORT_NUMBER, BLINK_PIN_NUMBER_BLUE, BLINK_ACTIVE_LOW );
 
-	for (int i=0; i<4; i++){
-		power_up(&blinkLeds[i]);
-	}
-
-	xTimer1 = xTimerCreate( "Timer1", ( pdMS_TO_TICKS(2000) ), pdFALSE, ( void * ) 0, prvOneShotTimerCallback);
-	xTimer2 = xTimerCreate( "Timer2", ( pdMS_TO_TICKS(1000) ), pdTRUE, ( void * ) 1, prvAutoReloadTimerCallback);
-
-	if( ( xTimer1 != NULL ) && ( xTimer2 != NULL ) )
-	{
-		xTimer1Started = xTimerStart( xTimer1, 0 );
-		xTimer2Started = xTimerStart( xTimer2, 0 );
-	}
-
-	if( xTimer1Started == pdPASS && xTimer2Started == pdPASS)
-	{
-		vTaskStartScheduler();
-	}
 
 	return 0;
 }
@@ -128,23 +78,9 @@ main(int argc, char* argv[])
 
 // ----------------------------------------------------------------------------
 
-static void prvOneShotTimerCallback( TimerHandle_t xTimer )
-{
-	trace_puts("One-shot timer callback executing");
-	turn_on (&blinkLeds[1]);
-}
 
-static void prvAutoReloadTimerCallback( TimerHandle_t xTimer )
-{
 
-	trace_puts("Auto-Reload timer callback executing");
-
-	if(isOn(blinkLeds[0])){
-		turn_off(&blinkLeds[0]);
-	} else {
-		turn_on(&blinkLeds[0]);
-	}
-}
+// ----------------------------------------------------------------------------
 
 
 void vApplicationMallocFailedHook( void )

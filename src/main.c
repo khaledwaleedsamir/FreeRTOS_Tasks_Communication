@@ -36,12 +36,30 @@
 #include "task.h"
 #include "queue.h"
 #include "timers.h"
+#include "semphr.h"
 
 #define CCM_RAM __attribute__((section(".ccmram")))
 
-// ----------------------------------------------------------------------------
+//------------------------------QUEUE_HANDLE-----------------------------------
+QueueHandle_t Queue;
+//------------------------------TASKS_FUNCTIONS--------------------------------
+void SenderTask(void * pvParameters){
 
+}
+void RecieverTask(void * pvParameters){
 
+}
+//------------------------------TIMERS-----------------------------------
+TimerHandle_t SenderTimer[3];
+TimerHandle_t RecieverTimer;
+void SenderTimerCallback(TimerHandle_t SenderTimer){
+
+}
+void RecieverTimerCallback(TimerHandle_t RecieverTimer){
+
+}
+//------------------------------SEMAPHORES-----------------------------------
+SemaphoreHandle_t SenderTaskSemaphore[3];
 
 /*-----------------------------------------------------------*/
 // ----------------------------------------------------------------------------

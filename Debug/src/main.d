@@ -10,7 +10,9 @@ src/main.o: ../src/main.c ../system/include/diag/trace.h \
  C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/list.h \
  C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/queue.h \
  C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/timers.h \
- C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/task.h
+ C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/task.h \
+ C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/semphr.h \
+ C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/queue.h
 ../system/include/diag/trace.h:
 C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/FreeRTOS.h:
 ../include/FreeRTOSConfig.h:
@@ -25,3 +27,5 @@ C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication
 C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/queue.h:
 C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/timers.h:
 C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/task.h:
+C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/semphr.h:
+C:\Users\assas\Desktop\FreeRTOS_Tasks_Communication\FreeRTOS_Tasks_Communication\FreeRTOS\ Source\include/queue.h:

@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "diag/trace.h"
 
 /* Kernel includes. */
@@ -41,13 +42,50 @@
 #define CCM_RAM __attribute__((section(".ccmram")))
 
 //------------------------------QUEUE_HANDLE-----------------------------------
-QueueHandle_t Queue;
-//------------------------------TASKS_FUNCTIONS--------------------------------
-void SenderTask(void * pvParameters){
-
+QueueHandle_t MessageQueue;
+//------------------------------TASKS_FUNCTIONS---------------------------
+void SenderTask(void* pvParameters){
+	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
+	int SentMessages = 0;
+	int BlockedMessages = 0;
+	BaseType_t Status;
+	while(1){
+	char Msg[] = "Time is ";
+	char TimeString[16];
+	TickType_t currentTicks = xTaskGetTickCount();
+	snprintf(TimeString, sizeof(TimeString), "%lu",(unsigned long)currentTicks);
+	strcat(Msg, TimeString);
+	char * QueueMsg = Msg;
+    //get semaphore
+	Status = xQueueSend(MessageQueue, &QueueMsg, 0);
+	if(Status == pdPASS){
+		SentMessages++;
+	}
+	else{
+		BlockedMessages++;
+	}
+	printf("Sent Msgs: %d \n Blocked Msgs: %d \n",SentMessages,BlockedMessages);
+	}
+	const TickType_t ticksdelay = pdMS_TO_TICKS(2000);
+	vTaskDelay(ticksdelay);
 }
-void RecieverTask(void * pvParameters){
-
+void ReceiverTask(void* pvParameters){
+	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
+	int ReceivedMessages = 0;
+	while(1){
+		BaseType_t Status;
+		char * ReceivedMsg;
+		const TickType_t ticksToWait = pdMS_TO_TICKS(1000);
+		Status = xQueueReceive(MessageQueue, &ReceivedMsg, ticksToWait);
+		if (Status == pdPASS){
+			ReceivedMessages++;
+			puts(ReceivedMsg);
+			printf("Total received messages = %d \n",ReceivedMessages);
+		}
+		else{
+			printf("Couldn't receive from Queue! \n");
+		}
+	}
 }
 //------------------------------TIMERS-----------------------------------
 TimerHandle_t SenderTimer[3];
@@ -60,6 +98,7 @@ void RecieverTimerCallback(TimerHandle_t RecieverTimer){
 }
 //------------------------------SEMAPHORES-----------------------------------
 SemaphoreHandle_t SenderTaskSemaphore[3];
+
 
 /*-----------------------------------------------------------*/
 // ----------------------------------------------------------------------------
@@ -85,10 +124,18 @@ SemaphoreHandle_t SenderTaskSemaphore[3];
 int
 main(int argc, char* argv[])
 {
-	// Add your code here.
-
-
-
+    BaseType_t status;
+	MessageQueue = xQueueCreate(3,sizeof(char*));
+	if(MessageQueue != NULL){
+		status = xTaskCreate(SenderTask, "Sender1", 1000, (void *)1, 1, NULL);
+		if(status == pdPASS){printf("Sender1 created! \n");}
+		status = xTaskCreate(ReceiverTask, "Receiver1", 1000, (void *)1, 2, NULL);
+		if(status == pdPASS){printf("Receiver1 created! \n");}
+    vTaskStartScheduler();
+	}
+	else{
+		printf("Queue Could not be created \n");
+	}
 	return 0;
 }
 

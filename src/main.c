@@ -45,7 +45,6 @@
 QueueHandle_t MessageQueue;
 //------------------------------TASKS_FUNCTIONS---------------------------
 void SenderTask(void* pvParameters){
-	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
 	int SentMessages = 0;
 	int BlockedMessages = 0;
 	BaseType_t Status;
@@ -64,7 +63,18 @@ void SenderTask(void* pvParameters){
 	else{
 		BlockedMessages++;
 	}
-	printf("Sent Msgs: %d \n Blocked Msgs: %d \n",SentMessages,BlockedMessages);
+    if(pvParameters == (void*)1){
+	printf("Sent Msgs 1: %d \n Blocked Msgs 1: %d \n",SentMessages,BlockedMessages);
+	}
+    else if(pvParameters == (void*)2){
+    	printf("Sent Msgs 2: %d \n Blocked Msgs 2: %d \n",SentMessages,BlockedMessages);
+    	}
+    else if(pvParameters == (void*)3){
+    	printf("Sent Msgs 3: %d \n Blocked Msgs 3: %d \n",SentMessages,BlockedMessages);
+    	}
+    else{
+    	printf("Sent Msgs: %d \n Blocked Msgs: %d \n",SentMessages,BlockedMessages);
+    	}
 	}
 	const TickType_t ticksdelay = pdMS_TO_TICKS(2000);
 	vTaskDelay(ticksdelay);
@@ -129,7 +139,11 @@ main(int argc, char* argv[])
 	if(MessageQueue != NULL){
 		status = xTaskCreate(SenderTask, "Sender1", 1000, (void *)1, 1, NULL);
 		if(status == pdPASS){printf("Sender1 created! \n");}
-		status = xTaskCreate(ReceiverTask, "Receiver1", 1000, (void *)1, 2, NULL);
+		status = xTaskCreate(SenderTask, "Sender2", 1000, (void *)2, 1, NULL);
+	    if(status == pdPASS){printf("Sender2 created! \n");}
+	    status = xTaskCreate(SenderTask, "Sender3", 1000, (void *)3, 2, NULL);
+	    if(status == pdPASS){printf("Sender3 created! \n");}
+		status = xTaskCreate(ReceiverTask, "Receiver1", 1000, (void *)1, 3, NULL);
 		if(status == pdPASS){printf("Receiver1 created! \n");}
     vTaskStartScheduler();
 	}

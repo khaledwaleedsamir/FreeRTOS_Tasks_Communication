@@ -41,43 +41,77 @@
 
 #define CCM_RAM __attribute__((section(".ccmram")))
 
-//------------------------------QUEUE_HANDLE-----------------------------------
+//Uniform Distribution Random Number Generation function
+int LowerBoundValues[] = {50, 80, 110, 140, 170, 200};
+int UpperBoundValues[] = {150, 200, 250, 300, 350, 400};
+
+int iterationCounter = 0;
+
+int UniformDistRandom(int rangeLow, int rangeHigh)
+{
+    srand(xTaskGetTickCount());
+    int num = (rand() % (rangeHigh - rangeLow + 1)) +rangeLow;
+    return num;
+}
+
+//QUEUE_HANDLE
+#define QUEUE_SIZE 3
 QueueHandle_t MessageQueue;
-//------------------------------TASKS_FUNCTIONS---------------------------
-void SenderTask(void* pvParameters){
+
+//TASKS_FUNCTIONS
+void Sender1Task(void* pvParameters){
+	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
 	int SentMessages = 0;
 	int BlockedMessages = 0;
 	BaseType_t Status;
 	while(1){
-	char Msg[] = "Time is ";
-	char TimeString[16];
-	TickType_t currentTicks = xTaskGetTickCount();
-	snprintf(TimeString, sizeof(TimeString), "%lu",(unsigned long)currentTicks);
-	strcat(Msg, TimeString);
-	char * QueueMsg = Msg;
-    //get semaphore
-	Status = xQueueSend(MessageQueue, &QueueMsg, 0);
-	if(Status == pdPASS){
-		SentMessages++;
-	}
-	else{
-		BlockedMessages++;
-	}
-    if(pvParameters == (void*)1){
-	printf("Sent Msgs 1: %d \n Blocked Msgs 1: %d \n",SentMessages,BlockedMessages);
-	}
-    else if(pvParameters == (void*)2){
-    	printf("Sent Msgs 2: %d \n Blocked Msgs 2: %d \n",SentMessages,BlockedMessages);
-    	}
-    else if(pvParameters == (void*)3){
-    	printf("Sent Msgs 3: %d \n Blocked Msgs 3: %d \n",SentMessages,BlockedMessages);
-    	}
-    else{
-    	printf("Sent Msgs: %d \n Blocked Msgs: %d \n",SentMessages,BlockedMessages);
-    	}
-	}
-	const TickType_t ticksdelay = pdMS_TO_TICKS(2000);
-	vTaskDelay(ticksdelay);
+		    char Message[50];
+			TickType_t CurrentTimeTicks = xTaskGetTickCount();
+			snprintf(Message, sizeof(Message), "Time is: %lu", (unsigned long)CurrentTimeTicks);
+			char * Msg = Message;
+			Status = xQueueSend(MessageQueue, &Msg, 0);
+			if(Status == pdPASS){SentMessages++;}
+			else{BlockedMessages++;}
+            printf("Sender1 Sent Msgs: %d \n Sender 1 Blocked Msgs: %d \n",SentMessages,BlockedMessages);
+			//const TickType_t ticksdelay = pdMS_TO_TICKS(1000);
+			//vTaskDelay(ticksdelay);
+	        }
+}
+void Sender2Task(void* pvParameters){
+	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
+	int SentMessages = 0;
+	int BlockedMessages = 0;
+	BaseType_t Status;
+	while(1){
+		    char Message[50];
+			TickType_t CurrentTimeTicks = xTaskGetTickCount();
+			snprintf(Message, sizeof(Message), "Time is: %lu", (unsigned long)CurrentTimeTicks);
+			char * Msg = Message;
+			Status = xQueueSend(MessageQueue, &Msg, 0);
+			if(Status == pdPASS){SentMessages++;}
+			else{BlockedMessages++;}
+            printf("Sender2 Sent Msgs: %d \n Sender 2 Blocked Msgs: %d \n",SentMessages,BlockedMessages);
+			const TickType_t ticksdelay = pdMS_TO_TICKS(1000);
+			vTaskDelay(ticksdelay);
+	        }
+}
+void Sender3Task(void* pvParameters){
+	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
+	int SentMessages = 0;
+	int BlockedMessages = 0;
+	BaseType_t Status;
+	while(1){
+		    char Message[50];
+			TickType_t CurrentTimeTicks = xTaskGetTickCount();
+			snprintf(Message, sizeof(Message), "Time is: %lu", (unsigned long)CurrentTimeTicks);
+			char * Msg = Message;
+			Status = xQueueSend(MessageQueue, &Msg, 0);
+			if(Status == pdPASS){SentMessages++;}
+			else{BlockedMessages++;}
+            printf("Sender3 Sent Msgs: %d \n Sender  Blocked Msgs: %d \n",SentMessages,BlockedMessages);
+			const TickType_t ticksdelay = pdMS_TO_TICKS(1000);
+			vTaskDelay(ticksdelay);
+	        }
 }
 void ReceiverTask(void* pvParameters){
 	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
@@ -97,18 +131,39 @@ void ReceiverTask(void* pvParameters){
 		}
 	}
 }
-//------------------------------TIMERS-----------------------------------
-TimerHandle_t SenderTimer[3];
+
+//SEMAPHORES
+SemaphoreHandle_t Sender1Semaphore;
+SemaphoreHandle_t Sender2Semaphore;
+SemaphoreHandle_t Sender3Semaphore;
+SemaphoreHandle_t ReceiverSemaphore;
+
+//TIMERS
+TimerHandle_t Sender1Timer;
+TimerHandle_t Sender2Timer;
+TimerHandle_t Sender3Timer;
 TimerHandle_t RecieverTimer;
-void SenderTimerCallback(TimerHandle_t SenderTimer){
+int Tsender1;
+int Tsender2;
+int Tsender3;
+#define Treceiver pdMS_TO_TICKS(100)
 
+
+static void Sender1TimerCallback(TimerHandle_t SenderTimer){
+	Tsender1 = UniformDistRandom(LowerBoundValues[iterationCounter],LowerBoundValues[iterationCounter]);
+	xSemaphoreGive(Sender1Semaphore);
 }
-void RecieverTimerCallback(TimerHandle_t RecieverTimer){
-
+static void Sender2TimerCallback(TimerHandle_t SenderTimer){
+	Tsender2 = UniformDistRandom(LowerBoundValues[iterationCounter],LowerBoundValues[iterationCounter]);
+	xSemaphoreGive(Sender2Semaphore);
 }
-//------------------------------SEMAPHORES-----------------------------------
-SemaphoreHandle_t SenderTaskSemaphore[3];
-
+static void Sender3TimerCallback(TimerHandle_t SenderTimer){
+	Tsender3 = UniformDistRandom(LowerBoundValues[iterationCounter],LowerBoundValues[iterationCounter]);
+	xSemaphoreGive(Sender3Semaphore);
+}
+static void RecieverTimerCallback(TimerHandle_t RecieverTimer){
+	xSemaphoreGive(ReceiverSemaphore);
+}
 
 /*-----------------------------------------------------------*/
 // ----------------------------------------------------------------------------
@@ -134,18 +189,10 @@ SemaphoreHandle_t SenderTaskSemaphore[3];
 int
 main(int argc, char* argv[])
 {
-    BaseType_t status;
-	MessageQueue = xQueueCreate(3,sizeof(char*));
+
+	MessageQueue = xQueueCreate(QUEUE_SIZE,sizeof(char*));
 	if(MessageQueue != NULL){
-		status = xTaskCreate(SenderTask, "Sender1", 1000, (void *)1, 1, NULL);
-		if(status == pdPASS){printf("Sender1 created! \n");}
-		status = xTaskCreate(SenderTask, "Sender2", 1000, (void *)2, 1, NULL);
-	    if(status == pdPASS){printf("Sender2 created! \n");}
-	    status = xTaskCreate(SenderTask, "Sender3", 1000, (void *)3, 2, NULL);
-	    if(status == pdPASS){printf("Sender3 created! \n");}
-		status = xTaskCreate(ReceiverTask, "Receiver1", 1000, (void *)1, 3, NULL);
-		if(status == pdPASS){printf("Receiver1 created! \n");}
-    vTaskStartScheduler();
+
 	}
 	else{
 		printf("Queue Could not be created \n");

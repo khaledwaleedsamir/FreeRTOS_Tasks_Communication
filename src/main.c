@@ -41,64 +41,194 @@
 
 #define CCM_RAM __attribute__((section(".ccmram")))
 
-//------------------------------QUEUE_HANDLE-----------------------------------
+//Uniform Distribution Random Number Generation function
+int LowerBoundValues[] = {50, 80, 110, 140, 170, 200};
+int UpperBoundValues[] = {150, 200, 250, 300, 350, 400};
+
+int iterationCounter = -1; //incremented before first run so it will be 0
+
+int UniformDistRandom(int rangeLow, int rangeHigh)
+{
+    //srand(xTaskGetTickCount());
+    int num = (rand() % (rangeHigh - rangeLow + 1)) +rangeLow;
+    return num;
+}
+
+//Required Variables for tasks
+int SentMessages1 = 0;
+int SentMessages2 = 0;
+int SentMessages3 = 0;
+int BlockedMessages1 = 0;
+int BlockedMessages2 = 0;
+int BlockedMessages3 = 0;
+int ReceivedMessages = 0;
+
+//QUEUE_HANDLE
+#define QUEUE_SIZE 3
 QueueHandle_t MessageQueue;
-//------------------------------TASKS_FUNCTIONS---------------------------
-void SenderTask(void* pvParameters){
+
+//SEMAPHORES
+SemaphoreHandle_t Sender1Semaphore;
+SemaphoreHandle_t Sender2Semaphore;
+SemaphoreHandle_t Sender3Semaphore;
+SemaphoreHandle_t ReceiverSemaphore;
+
+//TIMERS
+TimerHandle_t Sender1Timer;
+TimerHandle_t Sender2Timer;
+TimerHandle_t Sender3Timer;
+TimerHandle_t ReceiverTimer;
+int Tsender1;
+int Tsender2;
+int Tsender3;
+int TotalTsender1;
+int TotalTsender2;
+int TotalTsender3;
+#define Treceiver pdMS_TO_TICKS(100)
+
+//TASKS_FUNCTIONS
+void Sender1Task(void* pvParameters){
 	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
-	int SentMessages = 0;
-	int BlockedMessages = 0;
-	BaseType_t Status;
 	while(1){
-	char Msg[] = "Time is ";
-	char TimeString[16];
-	TickType_t currentTicks = xTaskGetTickCount();
-	snprintf(TimeString, sizeof(TimeString), "%lu",(unsigned long)currentTicks);
-	strcat(Msg, TimeString);
-	char * QueueMsg = Msg;
-    //get semaphore
-	Status = xQueueSend(MessageQueue, &QueueMsg, 0);
-	if(Status == pdPASS){
-		SentMessages++;
+		    BaseType_t Status;
+		    char Message[50];
+			TickType_t CurrentTimeTicks = xTaskGetTickCount();
+			snprintf(Message, sizeof(Message), "Time is: %lu", (unsigned long)CurrentTimeTicks);
+			char * Msg = Message;
+			BaseType_t CheckSemaphore = xSemaphoreTake(Sender1Semaphore,portMAX_DELAY);
+	        if(CheckSemaphore == pdTRUE){
+	        	Status = xQueueSend(MessageQueue, &Msg, 0);
+	            if(Status == pdPASS){SentMessages1++;}
+	            else{BlockedMessages1++;}
+	        	//printf("Sender1 Sent Msgs: %d \n Sender 1 Blocked Msgs: %d \n",SentMessages,BlockedMessages);
+        }
 	}
-	else{
-		BlockedMessages++;
+}
+void Sender2Task(void* pvParameters){
+	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
+	while(1){
+		BaseType_t Status;
+		char Message[50];
+	    TickType_t CurrentTimeTicks = xTaskGetTickCount();
+		snprintf(Message, sizeof(Message), "Time is: %lu", (unsigned long)CurrentTimeTicks);
+		char * Msg = Message;
+		BaseType_t CheckSemaphore = xSemaphoreTake(Sender2Semaphore,portMAX_DELAY);
+		if(CheckSemaphore == pdTRUE){
+			Status = xQueueSend(MessageQueue, &Msg, 0);
+			if(Status == pdPASS){SentMessages2++;}
+			else{BlockedMessages2++;}
+		    //printf("Sender2 Sent Msgs: %d \n Sender 2 Blocked Msgs: %d \n",SentMessages2,BlockedMessages2);
+	    }
 	}
-	printf("Sent Msgs: %d \n Blocked Msgs: %d \n",SentMessages,BlockedMessages);
+}
+void Sender3Task(void* pvParameters){
+	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
+	while(1){
+		BaseType_t Status;
+		char Message[50];
+		TickType_t CurrentTimeTicks = xTaskGetTickCount();
+		snprintf(Message, sizeof(Message), "Time is: %lu", (unsigned long)CurrentTimeTicks);
+		char * Msg = Message;
+		BaseType_t CheckSemaphore = xSemaphoreTake(Sender3Semaphore,portMAX_DELAY);
+	    if(CheckSemaphore == pdTRUE){
+			Status = xQueueSend(MessageQueue, &Msg, 0);
+			if(Status == pdPASS){SentMessages3++;}
+		    else{BlockedMessages3++;}
+		    //printf("Sender3 Sent Msgs: %d \n Sender 3 Blocked Msgs: %d \n",SentMessages3,BlockedMessages3);
+	    }
 	}
-	const TickType_t ticksdelay = pdMS_TO_TICKS(2000);
-	vTaskDelay(ticksdelay);
 }
 void ReceiverTask(void* pvParameters){
 	configASSERT( ( ( uint32_t ) pvParameters ) == 1 );
-	int ReceivedMessages = 0;
 	while(1){
 		BaseType_t Status;
 		char * ReceivedMsg;
-		const TickType_t ticksToWait = pdMS_TO_TICKS(1000);
-		Status = xQueueReceive(MessageQueue, &ReceivedMsg, ticksToWait);
+		BaseType_t CheckSemaphore = xSemaphoreTake(ReceiverSemaphore, portMAX_DELAY);
+		if(CheckSemaphore == pdTRUE){
+		Status = xQueueReceive(MessageQueue, &ReceivedMsg, 0);
 		if (Status == pdPASS){
 			ReceivedMessages++;
 			puts(ReceivedMsg);
-			printf("Total received messages = %d \n",ReceivedMessages);
+			//printf("Total received messages = %d \n",ReceivedMessages);
 		}
 		else{
-			printf("Couldn't receive from Queue! \n");
-		}
+			//printf("Couldn't receive from Queue! \n");
+	  }
+	}
+  }
+}
+//Reset Functions
+
+void PrintStats(){
+	    printf("***************** Iteration number %d *****************\n",(iterationCounter+1));
+	    printf("Total Sent Messages of Task 1: %d \n",SentMessages1);
+		printf("Total Blocked Messages of Task 1: %d \n",BlockedMessages1);
+		printf("Total Sent Messages of Task 2: %d \n",SentMessages2);
+		printf("Total Blocked Messages of Task 2: %d \n",BlockedMessages2);
+		printf("Total Sent Messages of Task 3: %d \n",SentMessages3);
+		printf("Total Blocked Messages of Task 3: %d \n",BlockedMessages3);
+		printf("Total Sent Messages: %d \n", (SentMessages1+SentMessages2+SentMessages3));
+		printf("Total Recieved Messages: %d \n", ReceivedMessages);
+		printf("Total Blocked Messages: %d \n",(BlockedMessages1+BlockedMessages2+BlockedMessages3));
+		printf("Average Time of Sender1: %d \n",(TotalTsender1)/(SentMessages1+BlockedMessages1));
+		printf("Average Time of Sender2: %d \n",(TotalTsender2)/(SentMessages2+BlockedMessages2));
+		printf("Average Time of Sender3: %d \n",(TotalTsender3)/(SentMessages3+BlockedMessages3));
+}
+void ResetVariables(){
+	SentMessages1 = 0;
+	SentMessages2 = 0;
+	SentMessages3 = 0;
+	BlockedMessages1 = 0;
+	BlockedMessages2 = 0;
+	BlockedMessages3 = 0;
+	ReceivedMessages = 0;
+	TotalTsender1 = 0;
+	TotalTsender2 = 0;
+	TotalTsender3 = 0;
+}
+void Reset(){
+	ResetVariables();
+	xQueueReset(MessageQueue);
+	iterationCounter++;
+	if(iterationCounter>5){
+		xTimerDelete(Sender1Timer,0);
+		xTimerDelete(Sender2Timer,0);
+		xTimerDelete(Sender3Timer,0);
+		printf("Game Over \n");
+		vTaskEndScheduler();
 	}
 }
-//------------------------------TIMERS-----------------------------------
-TimerHandle_t SenderTimer[3];
-TimerHandle_t RecieverTimer;
-void SenderTimerCallback(TimerHandle_t SenderTimer){
 
+//Timers callback functions
+
+static void Sender1TimerCallback(TimerHandle_t Sender1Timer){
+	Tsender1 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
+	TotalTsender1+=Tsender1;
+	xTimerChangePeriod(Sender1Timer,pdMS_TO_TICKS(Tsender1),0);
+	//printf("Tsender1: %d \n",Tsender1);
+	xSemaphoreGive(Sender1Semaphore);
 }
-void RecieverTimerCallback(TimerHandle_t RecieverTimer){
-
+static void Sender2TimerCallback(TimerHandle_t Sender2Timer){
+	Tsender2 = UniformDistRandom(LowerBoundValues[iterationCounter], UpperBoundValues[iterationCounter]);
+	TotalTsender2+=Tsender2;
+	xTimerChangePeriod(Sender2Timer,pdMS_TO_TICKS(Tsender2),0);
+	//printf("Tsender2: %d \n",Tsender2);
+	xSemaphoreGive(Sender2Semaphore);
 }
-//------------------------------SEMAPHORES-----------------------------------
-SemaphoreHandle_t SenderTaskSemaphore[3];
-
+static void Sender3TimerCallback(TimerHandle_t Sender3Timer){
+	Tsender3 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
+	TotalTsender3+=Tsender3;
+	xTimerChangePeriod(Sender3Timer,pdMS_TO_TICKS(Tsender3),0);
+	//printf("Tsender3: %d \n",Tsender3);
+	xSemaphoreGive(Sender3Semaphore);
+}
+static void ReceiverTimerCallback(TimerHandle_t RecieverTimer){
+	xSemaphoreGive(ReceiverSemaphore);
+	if(ReceivedMessages >= 1000){
+		PrintStats();
+		Reset();
+	}
+}
 
 /*-----------------------------------------------------------*/
 // ----------------------------------------------------------------------------
@@ -124,15 +254,38 @@ SemaphoreHandle_t SenderTaskSemaphore[3];
 int
 main(int argc, char* argv[])
 {
-    BaseType_t status;
-	MessageQueue = xQueueCreate(3,sizeof(char*));
+	Sender1Semaphore = xSemaphoreCreateBinary();
+    Sender2Semaphore = xSemaphoreCreateBinary();
+    Sender3Semaphore = xSemaphoreCreateBinary();
+    ReceiverSemaphore = xSemaphoreCreateBinary();
+    srand(xTaskGetTickCount()); //seed for rand function
+    MessageQueue = xQueueCreate(QUEUE_SIZE,sizeof(char*));
 	if(MessageQueue != NULL){
-		status = xTaskCreate(SenderTask, "Sender1", 1000, (void *)1, 1, NULL);
-		if(status == pdPASS){printf("Sender1 created! \n");}
-		status = xTaskCreate(ReceiverTask, "Receiver1", 1000, (void *)1, 2, NULL);
-		if(status == pdPASS){printf("Receiver1 created! \n");}
-    vTaskStartScheduler();
-	}
+		Reset();
+		 xTaskCreate(Sender1Task, "Sender 1", 1000, (void*)1,1,NULL);
+		 xTaskCreate(Sender2Task, "Sender 2", 1000, (void*)1,1,NULL);
+	     xTaskCreate(Sender3Task, "Sender 3", 1000, (void*)1,2,NULL);
+		 xTaskCreate(ReceiverTask, "Receiver", 1000, (void*)1,3,NULL);
+		Tsender1 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
+		Tsender2 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
+		Tsender3 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
+		TotalTsender1+=Tsender1;
+		TotalTsender2+=Tsender2;
+		TotalTsender3+=Tsender3;
+		Sender1Timer = xTimerCreate("Sender1 Timer",pdMS_TO_TICKS(Tsender1),pdTRUE,(void*)1,Sender1TimerCallback);
+		Sender2Timer = xTimerCreate("Sender2 Timer",pdMS_TO_TICKS(Tsender2),pdTRUE,(void*)2,Sender2TimerCallback);
+		Sender3Timer = xTimerCreate("Sender3 Timer",pdMS_TO_TICKS(Tsender3),pdTRUE,(void*)3,Sender3TimerCallback);
+		ReceiverTimer = xTimerCreate("Receiver Timer",pdMS_TO_TICKS(Treceiver),pdTRUE,(void*)4,ReceiverTimerCallback);
+		xTimerStart(Sender1Timer,0);
+		xSemaphoreTake(Sender1Semaphore,0);
+		xTimerStart(Sender2Timer,0);
+		xSemaphoreTake(Sender2Semaphore,0);
+		xTimerStart(Sender3Timer,0);
+		xSemaphoreTake(Sender3Semaphore,0);
+		xTimerStart(ReceiverTimer,0);
+		xSemaphoreTake(ReceiverSemaphore,0);
+		vTaskStartScheduler();
+}
 	else{
 		printf("Queue Could not be created \n");
 	}

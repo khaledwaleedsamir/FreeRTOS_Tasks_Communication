@@ -49,7 +49,7 @@ int iterationCounter = -1; //incremented before first run so it will be 0
 
 int UniformDistRandom(int rangeLow, int rangeHigh)
 {
-    srand(xTaskGetTickCount());
+    //srand(xTaskGetTickCount());
     int num = (rand() % (rangeHigh - rangeLow + 1)) +rangeLow;
     return num;
 }
@@ -81,6 +81,9 @@ TimerHandle_t ReceiverTimer;
 int Tsender1;
 int Tsender2;
 int Tsender3;
+int TotalTsender1;
+int TotalTsender2;
+int TotalTsender3;
 #define Treceiver pdMS_TO_TICKS(100)
 
 //TASKS_FUNCTIONS
@@ -154,10 +157,10 @@ void ReceiverTask(void* pvParameters){
 	}
   }
 }
-	//Reset Function
+//Reset Functions
 
 void PrintStats(){
-	    printf("Iteration number: %d \n",iterationCounter);
+	    printf("***************** Iteration number %d *****************\n",(iterationCounter+1));
 	    printf("Total Sent Messages of Task 1: %d \n",SentMessages1);
 		printf("Total Blocked Messages of Task 1: %d \n",BlockedMessages1);
 		printf("Total Sent Messages of Task 2: %d \n",SentMessages2);
@@ -167,6 +170,9 @@ void PrintStats(){
 		printf("Total Sent Messages: %d \n", (SentMessages1+SentMessages2+SentMessages3));
 		printf("Total Recieved Messages: %d \n", ReceivedMessages);
 		printf("Total Blocked Messages: %d \n",(BlockedMessages1+BlockedMessages2+BlockedMessages3));
+		printf("Average Time of Sender1: %d \n",(TotalTsender1)/(SentMessages1+BlockedMessages1));
+		printf("Average Time of Sender2: %d \n",(TotalTsender2)/(SentMessages2+BlockedMessages2));
+		printf("Average Time of Sender3: %d \n",(TotalTsender3)/(SentMessages3+BlockedMessages3));
 }
 void ResetVariables(){
 	SentMessages1 = 0;
@@ -176,6 +182,9 @@ void ResetVariables(){
 	BlockedMessages2 = 0;
 	BlockedMessages3 = 0;
 	ReceivedMessages = 0;
+	TotalTsender1 = 0;
+	TotalTsender2 = 0;
+	TotalTsender3 = 0;
 }
 void Reset(){
 	ResetVariables();
@@ -193,18 +202,24 @@ void Reset(){
 //Timers callback functions
 
 static void Sender1TimerCallback(TimerHandle_t Sender1Timer){
-	Tsender1 = UniformDistRandom(LowerBoundValues[iterationCounter],LowerBoundValues[iterationCounter]);
+	Tsender1 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
+	TotalTsender1+=Tsender1;
 	xTimerChangePeriod(Sender1Timer,pdMS_TO_TICKS(Tsender1),0);
+	//printf("Tsender1: %d \n",Tsender1);
 	xSemaphoreGive(Sender1Semaphore);
 }
 static void Sender2TimerCallback(TimerHandle_t Sender2Timer){
-	Tsender2 = UniformDistRandom(LowerBoundValues[iterationCounter],LowerBoundValues[iterationCounter]);
+	Tsender2 = UniformDistRandom(LowerBoundValues[iterationCounter], UpperBoundValues[iterationCounter]);
+	TotalTsender2+=Tsender2;
 	xTimerChangePeriod(Sender2Timer,pdMS_TO_TICKS(Tsender2),0);
+	//printf("Tsender2: %d \n",Tsender2);
 	xSemaphoreGive(Sender2Semaphore);
 }
 static void Sender3TimerCallback(TimerHandle_t Sender3Timer){
-	Tsender3 = UniformDistRandom(LowerBoundValues[iterationCounter],LowerBoundValues[iterationCounter]);
+	Tsender3 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
+	TotalTsender3+=Tsender3;
 	xTimerChangePeriod(Sender3Timer,pdMS_TO_TICKS(Tsender3),0);
+	//printf("Tsender3: %d \n",Tsender3);
 	xSemaphoreGive(Sender3Semaphore);
 }
 static void ReceiverTimerCallback(TimerHandle_t RecieverTimer){
@@ -243,6 +258,7 @@ main(int argc, char* argv[])
     Sender2Semaphore = xSemaphoreCreateBinary();
     Sender3Semaphore = xSemaphoreCreateBinary();
     ReceiverSemaphore = xSemaphoreCreateBinary();
+    srand(xTaskGetTickCount()); //seed for rand function
     MessageQueue = xQueueCreate(QUEUE_SIZE,sizeof(char*));
 	if(MessageQueue != NULL){
 		Reset();
@@ -253,6 +269,9 @@ main(int argc, char* argv[])
 		Tsender1 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
 		Tsender2 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
 		Tsender3 = UniformDistRandom(LowerBoundValues[iterationCounter],UpperBoundValues[iterationCounter]);
+		TotalTsender1+=Tsender1;
+		TotalTsender2+=Tsender2;
+		TotalTsender3+=Tsender3;
 		Sender1Timer = xTimerCreate("Sender1 Timer",pdMS_TO_TICKS(Tsender1),pdTRUE,(void*)1,Sender1TimerCallback);
 		Sender2Timer = xTimerCreate("Sender2 Timer",pdMS_TO_TICKS(Tsender2),pdTRUE,(void*)2,Sender2TimerCallback);
 		Sender3Timer = xTimerCreate("Sender3 Timer",pdMS_TO_TICKS(Tsender3),pdTRUE,(void*)3,Sender3TimerCallback);

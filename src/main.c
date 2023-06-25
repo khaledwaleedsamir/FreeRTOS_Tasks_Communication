@@ -193,7 +193,7 @@ void PrintStats(){
 		printf("Total Sent Messages of Task 3: %d \n",SentMessages3);
 		printf("Total Blocked Messages of Task 3: %d \n",BlockedMessages3);
 		printf("Total Sent Messages: %d \n", (SentMessages1+SentMessages2+SentMessages3));
-		printf("Total Recieved Messages: %d \n", ReceivedMessages);
+		printf("Total Received Messages: %d \n", ReceivedMessages);
 		printf("Total Blocked Messages: %d \n",(BlockedMessages1+BlockedMessages2+BlockedMessages3));
 		printf("Average Time of Sender1: %d \n",(TotalTsender1)/(SentMessages1+BlockedMessages1));
 		printf("Average Time of Sender2: %d \n",(TotalTsender2)/(SentMessages2+BlockedMessages2));
@@ -313,7 +313,7 @@ main(int argc, char* argv[])
 		TotalTsender3+=Tsender3;
 
 		/* creating timers using the random values generated, note that the sender timers are created periodic
-		 * but their period's will change after every call back function to a random value (check callback function)*/
+		 * but their periods will change after every call back function to a random value (check callback function)*/
 
 		Sender1Timer = xTimerCreate("Sender1 Timer",pdMS_TO_TICKS(Tsender1),pdTRUE,(void*)1,Sender1TimerCallback);
 		Sender2Timer = xTimerCreate("Sender2 Timer",pdMS_TO_TICKS(Tsender2),pdTRUE,(void*)2,Sender2TimerCallback);
@@ -321,10 +321,9 @@ main(int argc, char* argv[])
 
 		//creating receiver timer with fixed periodic time Treceiver
 
-		ReceiverTimer = xTimerCreate("Receiver Timer",pdMS_TO_TICKS(Treceiver),pdTRUE,(void*)4,ReceiverTimerCallback);
+		ReceiverTimer = xTimerCreate("Receiver Timer",Treceiver,pdTRUE,(void*)4,ReceiverTimerCallback);
 
-		/* starting timers and taking all semaphores to block tasks and wait for timers to give sempahores to tasks
-		 * to start execution */
+		/* starting timers and scheduler and wait for timers to give semaphores to tasks to start execution */
 
 		xTimerStart(Sender1Timer,0);
 		xSemaphoreTake(Sender1Semaphore,0);
